@@ -1,0 +1,49 @@
+name: Pylint
+
+# CINTENT >> MANUAL_TRIGGER
+# on: 
+#   pull_request:
+#     branches:
+#       - master
+on: [repository_dispatch, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # CINTENT >> REMOVE_MATRIX
+        # python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.11"]
+    steps:
+    - uses: actions/checkout@v4
+
+    # CINTENT >> INSERT_CINTENT
+    - uses: JavidDitty/setup-cintent@a606c80c34ec190c6a20dea33d6d58ddb6c4e0cc
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pylint
+        pip install .
+        pip install -r requirements-dev.txt
+        pip install -r requirements-testing.txt
+        pip install tensorflow
+
+    - name: Analysing the code with pylint
+      run: |
+        pylint --fail-under=10 --disable=typecheck,E0606,W,C,R --extension-pkg-allow-list=scipy.special $(git ls-files '*.py')
+        pylint --fail-under=9 --disable=typecheck,E,C,R $(git ls-files '*.py')
+
+    # CINTENT >> INSERT_CINTENT
+    - name: Upload CIntent Artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ${{ env.CINTENT_ARTIFACT_NAME }}
+        path: ${{ env.CINTENT_LOGS }}
